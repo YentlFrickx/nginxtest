@@ -1,0 +1,13 @@
+{
+  "name": "catchall",
+  "request": {
+    "method": "GET"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "CACHE_KEY": "yentl",
+      "Test": "third"
+    }
+  }
+}
