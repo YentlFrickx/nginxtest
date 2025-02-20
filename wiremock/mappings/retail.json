@@ -1,0 +1,14 @@
+{
+  "name": "retail",
+  "request": {
+    "method": "GET",
+    "urlPattern": "/(retail|particulieren)/en.html"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "tag": "/content/particulieren/en.html",
+      "uuid": "{{randomValue length=33 type='ALPHANUMERIC'}}"
+    }
+  }
+}

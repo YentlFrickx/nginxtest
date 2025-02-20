@@ -11,7 +11,6 @@ RUN mkdir /var/cache/tags
 RUN mkdir -p /data/nginx
 # make cache folder writable by everyone
 RUN chmod 777 /var/cache/tags
-RUN chmod 777 /data/nginx
 
 # Copy our custom Nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf

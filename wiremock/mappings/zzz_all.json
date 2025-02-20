@@ -6,7 +6,7 @@
   "response": {
     "status": 200,
     "headers": {
-      "CACHE_KEY": "yentl",
+      "tag": "yentl",
       "Test": "third"
     }
   }

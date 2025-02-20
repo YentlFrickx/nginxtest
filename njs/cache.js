@@ -1,6 +1,5 @@
 import fs from 'fs';
 import crypto from 'crypto';
-import querystring from 'querystring';
 
 function calculateMD5(data) {
     const hash = crypto.createHash('md5');
@@ -9,35 +8,48 @@ function calculateMD5(data) {
 }
 
 function create_tag(r) {
-    var cacheKey = r.headersOut['CACHE_KEY'];
-    r.error(`cacheKey: ${cacheKey}`);
-    r.error(`args: ${querystring.stringify(r.args)}`);
-    r.error(`headersIn: ${JSON.stringify(r.headersIn)}`);
+    const tag = r.headersOut['tag'];
 
-    if (cacheKey) {
-        // Calculate the MD5 of the cache_key of nginx
-        // const nginxCacheKey = `${r.headersIn['Host']}${r.uri}${querystring.stringify(r.args)}`;
-        // const md5 = calculateMD5(nginxCacheKey);
-        r.error(`writing file: /var/cache/tags/${cacheKey} with uri: ${r.uri}`);
-        fs.writeFile(`/var/cache/tags/${cacheKey}`, r.uri, (err) => {
-            if (err) {
-                r.log(`Error writing file: ${err}`);
+    if (tag) {
+
+        const cacheKey = calculateMD5(tag);
+        r.log(`writing file: /var/cache/tags/${cacheKey} with uri: ${r.uri}`);
+        // append the uri to the cache tag file if it is not already there
+        fs.readFile(`/var/cache/tags/${cacheKey}`, 'utf8', (err, data) => {
+            if (err && err.code !== 'ENOENT') {
+                r.error(`Error reading file: ${err}`);
+            }
+
+            if (!data || !data.includes(r.uri)) {
+                fs.appendFile(`/var/cache/tags/${cacheKey}`, `${r.uri}\n`, (err) => {
+                    if (err) {
+                        r.error(`Error writing file: ${err}`);
+                    }
+                });
             }
         });
     }
 }
 
 function flush_tag(r) {
-    // Remove /purge from uri
-    const cacheTag = r.uri.replace(/\/purge/, '');
+    const tag = r.headersIn['tag'];
+    const cacheKey = calculateMD5(tag);
+
     // get the uri from the cache tag written by create_tag
-    fs.readFile(`/var/cache/tags/${cacheTag}`, 'utf8', (err, data) => {
+    fs.readFile(`/var/cache/tags/${cacheKey}`, 'utf8', (err, data) => {
         if (err) {
             r.error(`Error reading file: ${err}`);
             r.return(500);
         }
-        r.error(`Flushing cache tag: ${cacheTag} with uri: ${data}`);
-        r.subrequest(data);
+
+        // for each line in data, send a subrequest to the uri
+        data.split('\n').forEach(function (line) {
+            if (line) {
+                r.log(`Flushing cache tag: ${cacheKey} with uri: ${line}`);
+                r.subrequest(line);
+            }
+        });
+
         r.return(200);
     });
 
