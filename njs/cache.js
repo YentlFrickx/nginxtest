@@ -8,26 +8,33 @@ function calculateMD5(data) {
 }
 
 function create_tag(r) {
+    const cacheStatus = r.variables.upstream_cache_status;
+
+    // These statuses will result in a response from the cache, so no need to write the tag
+    if (cacheStatus === 'STALE' || cacheStatus === 'UPDATING' || cacheStatus === 'HIT') {
+        return;
+    }
+
     const tag = r.headersOut['tag'];
-
     if (tag) {
+        // (async () => {
+            const cacheKey = calculateMD5(tag);
+            r.error(`writing file: /var/cache/tags/${cacheKey} with uri: ${r.uri}`);
+            // append the uri to the cache tag file if it is not already there
+            fs.readFile(`/var/cache/tags/${cacheKey}`, 'utf8', (err, data) => {
+                if (err && err.code !== 'ENOENT') {
+                    r.error(`Error reading file: ${err}`);
+                }
 
-        const cacheKey = calculateMD5(tag);
-        r.log(`writing file: /var/cache/tags/${cacheKey} with uri: ${r.uri}`);
-        // append the uri to the cache tag file if it is not already there
-        fs.readFile(`/var/cache/tags/${cacheKey}`, 'utf8', (err, data) => {
-            if (err && err.code !== 'ENOENT') {
-                r.error(`Error reading file: ${err}`);
-            }
-
-            if (!data || !data.includes(r.uri)) {
-                fs.appendFile(`/var/cache/tags/${cacheKey}`, `${r.uri}\n`, (err) => {
-                    if (err) {
-                        r.error(`Error writing file: ${err}`);
-                    }
-                });
-            }
-        });
+                if (!data || !data.includes(r.uri)) {
+                    fs.appendFile(`/var/cache/tags/${cacheKey}`, `${r.uri}\n`, (err) => {
+                        if (err) {
+                            r.error(`Error writing file: ${err}`);
+                        }
+                    });
+                }
+            });
+        // })();
     }
 }
 
@@ -56,4 +63,4 @@ function flush_tag(r) {
     r.return(404)
 }
 
-export default {create_tag, flush_tag};
+export {create_tag, flush_tag};
